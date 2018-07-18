@@ -10,9 +10,14 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort.Direction;
 import org.springframework.stereotype.Service;
 
+import com.gabrieldutra.cursomc.domain.Cidade;
 import com.gabrieldutra.cursomc.domain.Cliente;
+import com.gabrieldutra.cursomc.domain.Endereco;
+import com.gabrieldutra.cursomc.domain.enums.TipoCliente;
 import com.gabrieldutra.cursomc.dto.ClienteDTO;
+import com.gabrieldutra.cursomc.dto.ClienteNewDTO;
 import com.gabrieldutra.cursomc.repositories.ClienteRepository;
+import com.gabrieldutra.cursomc.repositories.EnderecoRepository;
 import com.gabrieldutra.cursomc.services.exceptions.DataIntegrityException;
 import com.gabrieldutra.cursomc.services.exceptions.ObjectNotFoundException;
 
@@ -21,6 +26,9 @@ public class ClienteService {
 
 	@Autowired
 	private ClienteRepository repo;
+	
+	@Autowired
+	private EnderecoRepository enderecoRepository;
 	
 	public Cliente find(Integer id) {
 		Optional<Cliente> obj = repo.findById(id);
@@ -57,9 +65,31 @@ public class ClienteService {
 		return new Cliente(objDto.getId(), objDto.getNome(), objDto.getEmail(), null, null);
 	}
 	
+	public Cliente fromDTO(ClienteNewDTO objDto) {
+		Cliente cli = new Cliente(null, objDto.getNome(), objDto.getEmail(), objDto.getCpfOuCnpj(), TipoCliente.toEnum(objDto.getTipo()));
+		Cidade cid = new Cidade(objDto.getCidadeId(), null, null);
+		Endereco end = new Endereco(null, objDto.getLogradouro(), objDto.getNumero(), objDto.getComplemento(), objDto.getBairro(), objDto.getBairro(), cli, cid);
+		cli.getEnderecos().add(end);
+		cli.getTelefones().add(objDto.getTelefone1());
+		if(objDto.getTelefone2() != null) {
+			cli.getTelefones().add(objDto.getTelefone2());
+		}
+		if(objDto.getTelefone3() != null) {
+			cli.getTelefones().add(objDto.getTelefone3());
+		}
+		return cli;
+	}
+	
 	private void updateData(Cliente newObj, Cliente obj) {
 		newObj.setNome(obj.getNome());
 		newObj.setEmail(obj.getEmail());
+	}
+	
+	public Cliente insert(Cliente obj) {
+		obj.setId(null);
+		obj = repo.save(obj);
+		enderecoRepository.saveAll(obj.getEnderecos());
+		return obj;
 	}
 	
 }
